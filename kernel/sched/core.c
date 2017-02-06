@@ -90,6 +90,7 @@
 #include <linux/types.h>
 #include <linux/sched/rt.h>
 #include <linux/cpumask.h>
+#include <linux/rcupdate_wait.h>
 
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
