@@ -432,7 +432,7 @@ static void *zs_zpool_map(void *pool, unsigned long handle,
 	case ZPOOL_MM_WO:
 		zs_mm = ZS_MM_WO;
 		break;
-	case ZPOOL_MM_RW: /* fallthru */
+	case ZPOOL_MM_RW: /* fall through */
 	default:
 		zs_mm = ZS_MM_RW;
 		break;
@@ -1343,7 +1343,7 @@ static bool can_merge(struct size_class *prev, int pages_per_zspage,
 		return false;
 
 	if (get_maxobj_per_zspage(prev->size, prev->pages_per_zspage)
-		!= get_maxobj_per_zspage(size, pages_per_zspage))
+		!= get_maxobj_per_zspage(ksize, pages_per_zspage))
 		return false;
 
 	return true;
