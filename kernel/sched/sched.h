@@ -276,6 +276,19 @@ struct task_group {
 #endif
 
 	struct cfs_bandwidth cfs_bandwidth;
+<<<<<<< HEAD
+=======
+
+#ifdef CONFIG_UCLAMP_TASK_GROUP
+	/* The two decimal precision [%] value requested from user-space */
+	unsigned int		uclamp_pct[UCLAMP_CNT];
+	/* Clamp values requested for a task group */
+	struct uclamp_se	uclamp_req[UCLAMP_CNT];
+	/* Effective clamp values used for a task group */
+	struct uclamp_se	uclamp[UCLAMP_CNT];
+#endif
+
+>>>>>>> d8d90542919c... UPSTREAM: sched/uclamp: Propagate parent clamps
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
