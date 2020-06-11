@@ -5231,11 +5231,6 @@ static long effective_load(struct task_group *tg, int cpu, long wl, long wg)
 		tg = se->my_q->tg;
 
 		/*
-		 * W = @wg + \Sum rw_j
-		 */
-		W = wg + calc_tg_weight(tg, se->my_q);
-
-		/*
 		 * w = rw_i + @wl
 		 */
 		w = cfs_rq_load_avg(se->my_q) + wl;
