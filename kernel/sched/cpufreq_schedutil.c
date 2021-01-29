@@ -153,7 +153,125 @@ static unsigned int get_next_freq(struct cpufreq_policy *policy,
 	unsigned int freq = arch_scale_freq_invariant() ?
 				policy->cpuinfo.max_freq : policy->cur;
 
+<<<<<<< HEAD
 	return (freq + (freq >> 2)) * util / max;
+=======
+	freq = (freq + (freq >> 2)) * util / max;
+
+	if (freq == sg_policy->cached_raw_freq && !sg_policy->need_freq_update)
+		return sg_policy->next_freq;
+
+	sg_policy->need_freq_update = false;
+	sg_policy->cached_raw_freq = freq;
+	return cpufreq_driver_resolve_freq(policy, freq);
+}
+
+static inline bool use_pelt(void)
+{
+#ifdef CONFIG_SCHED_WALT
+	return (!sysctl_sched_use_walt_cpu_util || walt_disabled);
+#else
+	return true;
+#endif
+}
+
+static void sugov_get_util(unsigned long *util, unsigned long *max, u64 time)
+{
+	int cpu = smp_processor_id();
+	struct rq *rq = cpu_rq(cpu);
+	unsigned long max_cap, rt;
+	s64 delta;
+
+	max_cap = arch_scale_cpu_capacity(NULL, cpu);
+
+	sched_avg_update(rq);
+	delta = time - rq->age_stamp;
+	if (unlikely(delta < 0))
+		delta = 0;
+	rt = div64_u64(rq->rt_avg, sched_avg_period() + delta);
+	rt = (rt * max_cap) >> SCHED_CAPACITY_SHIFT;
+
+	*util = boosted_cpu_util(cpu);
+	if (use_pelt())
+		*util = *util + rt;
+
+	*util = min(*util, max_cap);
+	*max = max_cap;
+#ifdef CONFIG_UCLAMP_TASK
+	*util = uclamp_util_with(rq, *util, NULL);
+	*util = min(*max, *util);
+#endif
+}
+
+static void sugov_set_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
+				   unsigned int flags)
+{
+	struct sugov_policy *sg_policy = sg_cpu->sg_policy;
+
+	if (!sg_policy->tunables->iowait_boost_enable ||
+	     sg_policy->is_panel_blank)
+		return;
+
+	if (flags & SCHED_CPUFREQ_IOWAIT) {
+		if (sg_cpu->iowait_boost_pending)
+			return;
+
+		sg_cpu->iowait_boost_pending = true;
+
+		if (sg_cpu->iowait_boost) {
+			sg_cpu->iowait_boost <<= 1;
+			if (sg_cpu->iowait_boost > sg_cpu->iowait_boost_max)
+				sg_cpu->iowait_boost = sg_cpu->iowait_boost_max;
+		} else {
+			sg_cpu->iowait_boost = sg_cpu->sg_policy->policy->min;
+		}
+	} else if (sg_cpu->iowait_boost) {
+		s64 delta_ns = time - sg_cpu->last_update;
+
+		/* Clear iowait_boost if the CPU apprears to have been idle. */
+		if (delta_ns > TICK_NSEC) {
+			sg_cpu->iowait_boost = 0;
+			sg_cpu->iowait_boost_pending = false;
+		}
+	}
+}
+
+static void sugov_iowait_boost(struct sugov_cpu *sg_cpu, unsigned long *util,
+			       unsigned long *max)
+{
+	unsigned int boost_util, boost_max;
+
+	if (!sg_cpu->iowait_boost)
+		return;
+
+	if (sg_cpu->iowait_boost_pending) {
+		sg_cpu->iowait_boost_pending = false;
+	} else {
+		sg_cpu->iowait_boost >>= 1;
+		if (sg_cpu->iowait_boost < sg_cpu->sg_policy->policy->min) {
+			sg_cpu->iowait_boost = 0;
+			return;
+		}
+	}
+
+	boost_util = sg_cpu->iowait_boost;
+	boost_max = sg_cpu->iowait_boost_max;
+
+	if (*util * boost_max < *max * boost_util) {
+		*util = boost_util;
+		*max = boost_max;
+	}
+}
+
+#ifdef CONFIG_NO_HZ_COMMON
+static bool sugov_cpu_is_busy(struct sugov_cpu *sg_cpu)
+{
+	unsigned long idle_calls = tick_nohz_get_idle_calls();
+	bool ret = idle_calls == sg_cpu->saved_idle_calls;
+
+	sg_cpu->saved_idle_calls = idle_calls;
+	return ret;
+>>>>>>> 3665f8648989... sched/cpufreq_schedutil: Reflect uclamp changes
 }
 
 static void sugov_update_single(struct update_util_data *hook, u64 time,
