@@ -6397,10 +6397,16 @@ int set_hmp_family_boost(int enable)
 	return hmp_family_boost_from_sysfs(enable);
 }
 
-int set_hmp_semiboost(int enable)
-{
-	return hmp_semiboost_from_sysfs(enable);
-}
+#ifdef CONFIG_CGROUP_SCHEDTUNE
+	boosted = schedtune_task_boost(p) > 0;
+	prefer_idle = schedtune_prefer_idle(p) > 0;
+#elif  CONFIG_UCLAMP_TASK
+	boosted = uclamp_boosted(p);
+	prefer_idle = uclamp_latency_sensitive(p);
+#else
+	boosted = get_sysctl_sched_cfs_boost() > 0;
+	prefer_idle = 0;
+#endif
 
 int set_hmp_boostpulse(int duration)
 {
