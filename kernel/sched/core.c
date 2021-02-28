@@ -1186,6 +1186,7 @@ void set_cpus_allowed_common(struct task_struct *p, const struct cpumask *new_ma
 	p->nr_cpus_allowed = cpumask_weight(new_mask);
 }
 
+<<<<<<< HEAD
 static const struct cpumask *get_adjusted_cpumask(const struct task_struct *p,
 	const struct cpumask *req_mask)
 {
@@ -1201,6 +1202,8 @@ static const struct cpumask *get_adjusted_cpumask(const struct task_struct *p,
 	return req_mask;
 }
 
+=======
+>>>>>>> 56384d3f66cc... kernel: Update perf-critical API changes from wahoo
 void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
 {
 	struct rq *rq = task_rq(p);
@@ -1250,6 +1253,7 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
 	/* Force all performance-critical kthreads onto the big cluster */
 	if (p->flags & PF_PERF_CRITICAL)
 		new_mask = cpu_perf_mask;
+<<<<<<< HEAD
 	
 	/* Force all low-power kthreads onto the little cluster */
 	if (p->flags & PF_LOW_POWER)
@@ -1259,6 +1263,8 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
 	if (p->flags & PF_KTHREAD && p->pid != 1 &&
 		cpumask_equal(new_mask, cpu_all_mask))
 		new_mask = cpu_perf_mask;
+=======
+>>>>>>> 56384d3f66cc... kernel: Update perf-critical API changes from wahoo
 
 	rq = task_rq_lock(p, &flags);
 
