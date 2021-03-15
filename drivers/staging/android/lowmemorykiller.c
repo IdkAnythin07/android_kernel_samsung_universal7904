@@ -42,22 +42,42 @@
 #include <linux/rcupdate.h>
 #include <linux/profile.h>
 #include <linux/notifier.h>
-#include <linux/ratelimit.h>
+#include <linux/mutex.h>
+#include <linux/delay.h>
+#include <linux/swap.h>
+#include <linux/fs.h>
+#include <linux/cpuset.h>
+#include <linux/vmpressure.h>
+#include <linux/freezer.h>
+
+#define CREATE_TRACE_POINTS
+#include <trace/lowmemorykiller.h>
+#include <linux/show_mem_notifier.h>
 
 #if defined(CONFIG_LMK_SKIP_KILL)
 #include <linux/delay.h>
 #endif
+#include <linux/circ_buf.h>
+#include <linux/proc_fs.h>
+#include <linux/slab.h>
+#include <linux/poll.h>
 
 #define CREATE_TRACE_POINTS
 #include "trace/lowmemorykiller.h"
 
 static uint32_t lowmem_debug_level = 0;
+/* to enable lowmemorykiller */
+static int enable_lmk = 1;
+module_param_named(enable_lmk, enable_lmk, int, 0644);
+
+static u32 lowmem_debug_level = 0;
 static short lowmem_adj[6] = {
 	0,
 	1,
 	6,
 	12,
 };
+
 static int lowmem_adj_size = 4;
 static int lowmem_minfree[6] = {
 	3 * 512,	/* 6MB */
@@ -65,6 +85,7 @@ static int lowmem_minfree[6] = {
 	4 * 1024,	/* 16MB */
 	16 * 1024,	/* 64MB */
 };
+
 static int lowmem_minfree_size = 4;
 static uint32_t lowmem_lmkcount = 0;
 static int lmkd_count;
@@ -194,8 +215,8 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 	}
 
 	lowmem_print(3, "lowmem_scan %lu, %x, ofree %d %d, ma %hd\n",
-			sc->nr_to_scan, sc->gfp_mask, other_free,
-			other_file, min_score_adj);
+		     sc->nr_to_scan, sc->gfp_mask, other_free,
+		     other_file, min_score_adj);
 
 	if (min_score_adj == OOM_SCORE_ADJ_MAX + 1) {
 		lowmem_print(5, "lowmem_scan %lu, %x, return 0\n",
@@ -293,10 +314,26 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		long cache_limit = minfree * (long)(PAGE_SIZE / 1024);
 		long free = other_free * (long)(PAGE_SIZE / 1024);
 
+		if (test_task_lmk_waiting(selected) &&
+		    (test_task_state(selected, TASK_UNINTERRUPTIBLE))) {
+			lowmem_print(2, "'%s' (%d) is already killed\n",
+				     selected->comm,
+				     selected->pid);
+			rcu_read_unlock();
+			mutex_unlock(&scan_mutex);
+			return 0;
+		}
+
 		task_lock(selected);
 		send_sig(SIGKILL, selected, 0);
-		if (selected->mm)
+		if (selected->mm) {
 			task_set_lmk_waiting(selected);
+			if (!test_bit(MMF_OOM_SKIP, &selected->mm->flags) &&
+			    oom_reaper) {
+				mark_lmk_victim(selected);
+				wake_oom_reaper(selected);
+			}
+		}
 		task_unlock(selected);
 		trace_lowmemory_kill(selected, cache_size, cache_limit, free);
 		lowmem_print(1, "Killing '%s' (%d) (tgid %d), adj %hd,\n"
@@ -342,7 +379,6 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		/* give the system time to free up the memory */
 		msleep_interruptible(20);
 	}
-#endif
 
 	return rem;
 }
@@ -353,11 +389,21 @@ static struct shrinker lowmem_shrinker = {
 	.seeks = DEFAULT_SEEKS
 };
 
-static int __init lowmem_init(void)
+static void lowmem_notify_kobj_release(struct kobject *kobj)
 {
+	/* Nothing to be done here */
+}
+
+static struct kobj_type lowmem_notify_kobj_type = {
+	.release = lowmem_notify_kobj_release,
+	.sysfs_ops = &lowmem_notify_ops,
+	.default_attrs = lowmem_notify_default_attrs,
+};
+#endif
+
 	register_shrinker(&lowmem_shrinker);
 	return 0;
-}
+
 device_initcall(lowmem_init);
 
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
@@ -441,15 +487,14 @@ static const struct kparam_array __param_arr_adj = {
  * not really modular, but the easiest way to keep compat with existing
  * bootargs behaviour is to continue using module_param here.
  */
-module_param_named(cost, lowmem_shrinker.seeks, int, S_IRUGO | S_IWUSR);
+module_param_named(cost, lowmem_shrinker.seeks, int, 0644);
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 module_param_cb(adj, &lowmem_adj_array_ops,
 		.arr = &__param_arr_adj,
 		S_IRUGO | S_IWUSR);
 __MODULE_PARM_TYPE(adj, "array of short");
 #else
-module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
-			 S_IRUGO | S_IWUSR);
+module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size, 0644);
 #endif
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
@@ -457,3 +502,4 @@ module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 module_param_named(lmkcount, lowmem_lmkcount, uint, S_IRUGO);
 module_param_named(lmkd_count, lmkd_count, int, 0644);
 module_param_named(lmkd_cricount, lmkd_cricount, int, 0644);
+module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
