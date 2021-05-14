@@ -2391,6 +2391,17 @@ enum memsize_kernel_type {
 	MEMSIZE_KERNEL_MM_INIT,
 	MEMSIZE_KERNEL_OTHERS,
 	MEMSIZE_KERNEL_STOP,
+
+#if defined(CONFIG_PRLMK)
+struct reclaim_param {
+	struct vm_area_struct *vma;
+	/* Number of pages scanned */
+	int nr_scanned;
+	/* max pages to reclaim */
+	int nr_to_reclaim;
+	/* pages reclaimed */
+	int nr_reclaimed;
+#endif
 };
 extern void set_memsize_reserved_name(const char *name);
 extern void unset_memsize_reserved_name(void);

@@ -105,6 +105,7 @@ obj-$(CONFIG_IDLE_PAGE_TRACKING) += page_idle.o
 obj-$(CONFIG_FRAME_VECTOR) += frame_vector.o
 obj-$(CONFIG_HARDENED_USERCOPY) += usercopy.o
 obj-$(CONFIG_PAGE_BOOST_RECORDING) += io_record.o
+obj-$(CONFIG_PRLMK)	+= prlmk.o
 
 # [IOPP-Wformat-v1.0.4.14.patch]
 # check calls to printf and scanf, etc.,
