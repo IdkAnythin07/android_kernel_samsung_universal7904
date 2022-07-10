@@ -605,10 +605,6 @@ resizefs_out:
 		if (!blk_queue_discard(q))
 			return -EOPNOTSUPP;
 
-		if ((flags & BLKDEV_DISCARD_SECURE) && !blk_queue_secdiscard(q))
-			return -EOPNOTSUPP;
-		if (copy_from_user(&range, (struct fstrim_range __user *)arg,
-		    sizeof(range)))
 			return -EFAULT;
 
 		range.minlen = max((unsigned int)range.minlen,
@@ -616,7 +612,6 @@ resizefs_out:
 		ret = ext4_trim_fs(sb, &range, flags);
 		if (ret < 0)
 			return ret;
-
 		if (copy_to_user((struct fstrim_range __user *)arg, &range,
 		    sizeof(range)))
 			return -EFAULT;
