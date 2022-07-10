@@ -721,6 +721,7 @@ asmlinkage int __exception do_debug_exception(unsigned long addr,
 {
 	const struct fault_info *inf = debug_fault_info + DBG_ESR_EVT(esr);
 	struct siginfo info;
+	int rv;
 
 	if (user_mode(regs) && instruction_pointer(regs) > TASK_SIZE)
 		arm64_apply_bp_hardening();
@@ -739,7 +740,10 @@ asmlinkage int __exception do_debug_exception(unsigned long addr,
 	info.si_addr  = (void __user *)addr;
 	arm64_notify_die("Oops - Debug exception", regs, &info, 0);
 
-	return 0;
+	if (interrupts_enabled(regs))
+		trace_hardirqs_on();
+
+	return rv;
 }
 
 #ifdef CONFIG_ARM64_PAN
