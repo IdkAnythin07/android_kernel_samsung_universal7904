@@ -508,11 +508,7 @@ static void ml_ff_destroy(struct ff_device *ff)
 	 * do not actually stop the timer, and therefore we should
 	 * do it here.
 	 */
-<<<<<<< HEAD
-	del_timer_sync(&ml->timer);	
-=======
 	del_timer_sync(&ml->timer);
->>>>>>> ce5d06efc9048aa1ab0594e24ad35d10dcae6c50
 
 	kfree(ml->private);
 }
