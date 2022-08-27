@@ -278,40 +278,6 @@ static struct ion_heap_ops system_heap_ops = {
 	.shrink = ion_system_heap_shrink,
 };
 
-static int ion_system_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
-				      void *unused)
-{
-
-	struct ion_system_heap *sys_heap = container_of(heap,
-							struct ion_system_heap,
-							heap);
-	int i;
-
-	for (i = 0; i < num_orders; i++) {
-		struct ion_page_pool *pool = sys_heap->pools[i];
-
-		seq_printf(s, "%d order %u highmem pages in cached pool = %lu total\n",
-			   pool->high_count, pool->order,
-			   (PAGE_SIZE << pool->order) * pool->high_count);
-		seq_printf(s, "%d order %u lowmem pages in cached pool = %lu total\n",
-			   pool->low_count, pool->order,
-			   (PAGE_SIZE << pool->order) * pool->low_count);
-	}
-
-	for (i = num_orders; i < (num_orders * 2); i++) {
-		struct ion_page_pool *pool = sys_heap->pools[i];
-
-		seq_printf(s, "%d order %u highmem pages in uncached pool = %lu total\n",
-			   pool->high_count, pool->order,
-			   (PAGE_SIZE << pool->order) * pool->high_count);
-		seq_printf(s, "%d order %u lowmem pages in uncached pool = %lu total\n",
-			   pool->low_count, pool->order,
-			   (PAGE_SIZE << pool->order) * pool->low_count);
-	}
-
-	return 0;
-}
-
 void show_ion_system_heap_size(struct seq_file *s)
 {
 	struct ion_heap *heap;
@@ -411,7 +377,6 @@ struct ion_heap *ion_system_heap_create(struct ion_platform_heap *unused)
 		heap->pools[i] = pool;
 	}
 
-	heap->heap.debug_show = ion_system_heap_debug_show;
 	fixed_max_order = orders[0];
 
 	if (sysfs_create_file(kernel_kobj, &ion_system_heap_orders_attr.attr))
