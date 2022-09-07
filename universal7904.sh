@@ -10,24 +10,19 @@ git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86
 echo "Cloning gcc4.9-32"
 git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 los-4.9-32
 echo "Done"
-chat_id="-1001542481275"
+chat_id="-1001573291689"
 token="5389275341:AAFtB8oBu3KUO2_EY68XwQ-mEwBXPOEp64A"
 IMAGE=$(pwd)/out/arch/arm64/boot/Image
 TANGGAL=$(date +"%F-%S")
 START=$(date +"%s")
 KERNEL_DIR=$(pwd)
-export USE_CCACHE=1
-sudo apt install ccache -y
-ccache -M 100G
 export PATH=$KERNEL_DIR/clang/bin:$PATH
 export KBUILD_COMPILER_STRING="$(${KERNEL_DIR}/clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g')"
 export ARCH=arm64
 export KBUILD_BUILD_HOST=loveade
 export KBUILD_BUILD_USER="eun0115"
-#export ANDROID_SIMPLE_LMK_MINFREE=96
-#export ANDROID_SIMPLE_LMK_TIMEOUT_MSEC=100
-export LOCALVERSION="-liquid-EOL-OC-RCU-LMKD-m20lte"
-export USB_ANDROID_SAMSUNG_MTP=y
+export LOCALVERSION="-liquid-LTS-SLMK"
+# export USB_ANDROID_SAMSUNG_MTP=y
 # sticker plox
 function sticker() {
     curl -s -X POST "https://api.telegram.org/bot$token/sendSticker" \
@@ -90,7 +85,7 @@ function compile() {
 # Zipping
 function zipping() {
     cd AnyKernel || exit 1
-    zip -r9 ${TANGGAL}-oneui-liquid-EOL-OC-personal-m20lte.zip *
+    zip -r9 aosp-liquid-LTS-SLMK-m20lte.zip *
     cd ..
 }
 
@@ -100,5 +95,3 @@ zipping
 END=$(date +"%s")
 DIFF=$(($END - $START))
 push
-exit
-done
