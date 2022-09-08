@@ -130,5 +130,9 @@ los-4.9-32/
 clang/
 AnyKernel/
 out/
+<<<<<<< HEAD
 universal7904.sh
 log.txt
+=======
+universal7904.sh
+>>>>>>> 7bbdc711c1c8 (Revert "Enable LMKD again")
