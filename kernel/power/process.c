@@ -180,7 +180,7 @@ int freeze_kernel_threads(void)
 {
 	int error;
 
-	pr_info("Freezing remaining freezable tasks ... ");
+	pr_debug("Freezing remaining freezable tasks ... ");
 
 	pm_nosig_freezing = true;
 	error = try_to_freeze_tasks(false);
@@ -240,7 +240,7 @@ void thaw_kernel_threads(void)
 	struct task_struct *g, *p;
 
 	pm_nosig_freezing = false;
-	pr_info("Restarting kernel threads ... ");
+	pr_debug("Restarting kernel threads ... ");
 
 	thaw_workqueues();
 

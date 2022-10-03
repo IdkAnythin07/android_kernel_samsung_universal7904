@@ -284,12 +284,12 @@ static int suspend_prepare(suspend_state_t state)
 		callback = pm_notifier_call_chain_get_callback(nr_calls - 1);
 
 		if (IS_ERR(callback)) {
-			pr_info("PM_SUSPEND_PREPARE failed: %d\n",
+			pr_debug("PM_SUSPEND_PREPARE failed: %d\n",
 					nr_calls);
 			log_suspend_abort_reason("PM_SUSPEND_PREPARE failed: "
 					"%d", nr_calls);
 		} else {
-			pr_info("PM_SUSPEND_PREPARE failed: %d (%ps)\n",
+			pr_debug("PM_SUSPEND_PREPARE failed: %d (%ps)\n",
 					nr_calls, callback);
 			log_suspend_abort_reason("PM_SUSPEND_PREPARE failed: "
 					"%ps (%d)", callback, nr_calls);
@@ -577,7 +577,7 @@ static void pm_suspend_marker(char *annotation)
 
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
-	pr_info("PM: suspend %s %d-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
+	pr_debug("PM: suspend %s %d-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
 		annotation, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
 }
