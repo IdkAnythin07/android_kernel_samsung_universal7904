@@ -48,6 +48,9 @@
 #include <linux/delay.h>
 #endif
 
+#define CREATE_TRACE_POINTS
+#include "trace/lowmemorykiller.h"
+
 static uint32_t lowmem_debug_level = 0;
 static short lowmem_adj[6] = {
 	0,
